@@ -1,0 +1,86 @@
+# Saves one page from a running rig as a single HTML file and publishes it on GitHub Pages (ADR 0003: previews are public, short-lived, uploaded over, never committed).
+name: preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      page:
+        description: Path of the page to save
+        type: string
+        default: /digest/2026-10-28
+      marker:
+        description: "on = banner shows the LANE_MARKER secret; off = banner shows 'no marker set'"
+        type: choice
+        options: ['on', 'off']
+        default: 'on'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  save:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install
+        shell: bash
+        run: npx -y pnpm@10 install --frozen-lockfile
+      - name: Start rig
+        shell: bash
+        env:
+          PORT: 8787
+          LANE_ID: lane-07
+          LANE_MARKER: ${{ inputs.marker == 'on' && secrets.LANE_MARKER || '' }}
+        run: npx -y pnpm@10 start > rig.log 2>&1 &
+      - name: Wait for health
+        shell: bash
+        run: |
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:8787/health >/dev/null 2>&1 && exit 0
+            sleep 1
+          done
+          echo "rig did not become healthy in 30 s" >&2
+          exit 1
+      - name: Save page
+        shell: bash
+        env:
+          PAGE: ${{ inputs.page }}
+        run: |
+          mkdir -p site
+          curl -fsS "http://localhost:8787${PAGE}" -o site/index.html
+          touch site/.nojekyll
+      - name: Check page
+        shell: bash
+        env:
+          MARKER: ${{ inputs.marker }}
+        run: |
+          size=$(wc -c < site/index.html)
+          echo "bytes: $size"
+          grep -i -m1 '<title' site/index.html | cut -c1-200 || true
+          grep -qi '<!doctype html>' site/index.html || { echo "no doctype" >&2; exit 1; }
+          [ "$size" -ge 500 ] || { echo "page too small" >&2; exit 1; }
+          if [ "$MARKER" = off ]; then
+            grep -q 'no marker set' site/index.html || { echo "marker still shown" >&2; exit 1; }
+          fi
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: save
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
