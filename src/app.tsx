@@ -3,6 +3,7 @@ import { loadConfig, type RigConfig } from './config.js';
 import { readNight } from './digest/index.js';
 import { lane } from './lane.js';
 import { readStatus } from './status.js';
+import { Digest, NoNight } from './views/digest.js';
 import { Layout } from './views/layout.js';
 import { StatusBoard } from './views/status.js';
 
@@ -24,6 +25,24 @@ export function createApp(config: RigConfig = loadConfig()) {
     const digest = await readNight(config.runsDir, night);
     if (!digest) return c.json({ error: `no run log for ${night}` }, 404);
     return c.json(digest);
+  });
+
+  app.get('/digest/:night', async (c) => {
+    const night = c.req.param('night');
+    const data = await readNight(config.runsDir, night);
+    if (!data) {
+      return c.html(
+        <Layout title={`digest ${night}`} lane={lane()}>
+          <NoNight night={night} />
+        </Layout>,
+        404,
+      );
+    }
+    return c.html(
+      <Layout title={`digest ${night}`} lane={lane()}>
+        <Digest night={data} />
+      </Layout>,
+    );
   });
 
   return app;
