@@ -40,3 +40,17 @@ the same issues, made that way. GitHub issues out of reach altogether: write the
 
 - Don't paste the whole plan into one issue, and don't keep issues only in chat.
 - Don't invent sections the plan doesn't have. If the plan is unclear, ask.
+
+## Issue shape (decided with the human on 2026-10-29, plan morning-digest)
+
+Every issue made from a plan carries, in this order:
+
+1. First line, exactly: `Source: plan.md § <n>` (the plan section, e.g. `2a`).
+2. Label `plan:<plan name>` (e.g. `plan:morning-digest`), so the reviewer can sort them.
+3. `## Scope`: what to build, which files or routes, copied faithfully from the plan.
+4. `## Done when`: the plan's "Done when" sentence, verbatim.
+5. `## Blocked by`: `none` or real issue numbers (create in dependency order).
+6. `## Worker`: model and harness (strongest for logic, cheaper for views and tests).
+7. `## Rules`: the repo rules the worker must keep (AGENTS.md, styleguide, ADRs) and the closing-comment shape.
+
+An issue for a review (a preview) closes when the review is in, not when the link is sent: the reviewer reads the open issue as the cue.
