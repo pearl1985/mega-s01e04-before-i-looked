@@ -65,13 +65,6 @@ export function toRows(lines: RunLine[]): DigestRow[] {
   return [...rows.values()].sort((a, b) => (a.job < b.job ? -1 : a.job > b.job ? 1 : 0));
 }
 
-// Jobs per last status (for the board's ok / retry / fail counts).
-export function countByLastStatus(rows: DigestRow[]): StatusCounts {
-  const counts: StatusCounts = { ok: 0, retry: 0, fail: 0 };
-  for (const r of rows) counts[r.lastStatus] += 1;
-  return counts;
-}
-
 // null when `night` is not YYYY-MM-DD (checked before touching the filesystem) or no file exists.
 // Blank lines are skipped, not counted as bad.
 export const readNight: ReadNight = async (runsDir, night) => {
@@ -84,13 +77,16 @@ export const readNight: ReadNight = async (runsDir, night) => {
     throw e;
   }
   const lines: RunLine[] = [];
+  const counts: StatusCounts = { ok: 0, retry: 0, fail: 0 };
   let badLines = 0;
   for (const raw of text.split(/\r?\n/)) {
     if (raw.trim() === '') continue;
     const line = parseLine(raw);
-    if (line) lines.push(line);
-    else badLines += 1;
+    if (line) {
+      lines.push(line);
+      counts[line.status] += 1;
+    } else badLines += 1;
   }
-  const result: Night = { night, rows: toRows(lines), badLines };
+  const result: Night = { night, rows: toRows(lines), badLines, counts };
   return result;
 };

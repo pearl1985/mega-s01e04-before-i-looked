@@ -23,13 +23,14 @@ export type DigestRow = {
   lastAt: string; // `at` of the job's last line, verbatim
 };
 
+export type StatusCounts = Record<RunStatus, number>;
+
 export type Night = {
   night: string; // YYYY-MM-DD
   rows: DigestRow[]; // sorted by job (code-unit order); empty = "nothing ran"
   badLines: number; // lines that did not parse or lacked required fields
+  counts: StatusCounts; // parsed lines per status; badLines are not in here
 };
-
-export type StatusCounts = Record<RunStatus, number>;
 
 // null: no file for that night (or `night` is not YYYY-MM-DD) -> the route 404s.
 export type ReadNight = (runsDir: string, night: string) => Promise<Night | null>;
