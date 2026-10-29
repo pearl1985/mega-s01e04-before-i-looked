@@ -17,4 +17,14 @@ describe('status board', () => {
     const res = await createApp(config).request('/health');
     expect(await res.json()).toEqual({ ok: true, lane: 'lane-07' });
   });
+
+  it('links each night to its digest with its ok/retry/fail counts', async () => {
+    const res = await createApp(config).request('/');
+    const html = await res.text();
+    expect(res.status).toBe(200);
+    expect(html).toContain('href="/digest/2026-10-28"');
+    expect(html).toContain('href="/digest/2026-10-27"');
+    expect(html).toContain('ok 10');
+    expect(html).toContain('fail 1');
+  });
 });
